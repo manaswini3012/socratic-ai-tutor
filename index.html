@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socratic Tutor</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 50px; }
+        #chat { width: 450px; height: 550px; background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
+        #header { background: #4A90E2; color: white; padding: 20px; text-align: center; font-weight: bold; }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        #input-area { padding: 20px; border-top: 1px solid #eee; display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
+        button { background: #4A90E2; color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; }
+        
+        /* Message Styling */
+        .user-bubble { align-self: flex-end; background: #4A90E2; color: white; padding: 10px; border-radius: 15px 15px 0 15px; max-width: 80%; }
+        .bot-bubble { align-self: flex-start; background: #e9ecef; color: #333; padding: 10px; border-radius: 15px 15px 15px 0; max-width: 80%; }
+    </style>
+</head>
+<body>
+    <div id="chat">
+    <div id="header">Socratic AI Tutor</div>
+    <div id="messages"></div>
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="Ask me anything...">
+        <button id="sendBtn">Send</button>
+    </div>
+</div>
+
+<script>
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const messagesContainer = document.getElementById('messages');
+        
+        if (!input.value) return;
+
+        const userText = input.value;
+        input.value = '';
+
+        // 1. Show User Message
+        messagesContainer.innerHTML += `<div style="align-self: flex-end; background: #4A90E2; color: white; padding: 10px; border-radius: 10px; margin-bottom: 10px;">${userText}</div>`;
+        
+        // 2. Show "Thinking" state
+        const loadingId = "loading-" + Date.now();
+        messagesContainer.innerHTML += `<div id="${loadingId}" style="align-self: flex-start; background: #e9ecef; padding: 10px; border-radius: 10px; margin-bottom: 10px; color:gray;"><i>Thinking...</i></div>`;
+
+        try {
+            // 3. Talk to Python Backend (Port 8000)
+            const response = await fetch('http://127.0.0.1:5000/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userText })
+            });
+
+            const data = await response.json();
+
+            // 4. Show Bot Response
+            document.getElementById(loadingId).remove();
+            messagesContainer.innerHTML += `<div style="align-self: flex-start; background: #e9ecef; padding: 10px; border-radius: 10px; margin-bottom: 10px;"><b>Tutor:</b> ${data.reply}</div>`;
+        } catch (error) {
+            document.getElementById(loadingId).innerHTML = `<b style="color:red;">Error: Is uvicorn running?</b>`;
+        }
+    }
+
+    // Connect the button
+    document.getElementById('sendBtn').onclick = sendMessage;
+
+    // Support "Enter" key
+    document.getElementById('user-input').onkeypress = (e) => {
+        if (e.key === 'Enter') sendMessage();
+    };
+</script>
+</body>
+</html>
